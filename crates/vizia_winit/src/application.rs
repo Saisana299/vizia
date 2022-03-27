@@ -63,8 +63,10 @@ impl Application {
         #[cfg(all(debug_assertions, target_arch = "wasm32"))]
         console_error_panic_hook::set_once();
 
-        #[allow(unused_mut)]
-        let mut context = Context::new();
+        // TODO: User scale factors and window resizing has not been implement for winit
+        // TODO: Changing the scale factor doesn't work for winit anyways since winit doesn't let
+        //       you resize the window, so there's no mutator for that at he moment
+        let mut context = Context::new(WindowSize::new(1, 1), 1.0);
 
         let event_loop = EventLoopBuilder::with_user_event().build();
         #[cfg(not(target_arch = "wasm32"))]
@@ -444,6 +446,7 @@ impl WindowModifiers for Application {
 
     fn inner_size<S: Into<WindowSize>>(mut self, size: impl Res<S>) -> Self {
         self.window_description.inner_size = size.get_val(&mut self.context).into();
+        *BackendContext::new(&mut self.context).window_size() = self.window_description.inner_size;
         size.set_or_bind(&mut self.context, Entity::root(), |cx, _, val| {
             cx.emit(WindowEvent::SetSize(val.into()));
         });

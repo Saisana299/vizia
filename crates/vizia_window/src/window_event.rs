@@ -10,8 +10,12 @@ use vizia_input::{Code, Key, MouseButton};
 pub enum WindowEvent {
     /// Emitted when a window is closed.
     WindowClose,
-    /// Emitted when a window changes size.
-    WindowResize(f32, f32),
+    /// Emitted when the window gets resized at runtime. When this happens you can find the window's
+    /// current scaled logical size (which may have a user scale factor applied to it, so this can
+    /// be different from the window's logical size) through `cx.style.width`/`cx.style.height` and
+    /// the physical size through `cx.cache.get_width(Entity::root())`/
+    /// `cx.cache.get_height(Entity::root())`.
+    WindowResize,
     /// Emitted when a mouse button is double clicked.
     MouseDoubleClick(MouseButton),
     /// Emitted when a mouse button is triple clicked
@@ -93,14 +97,4 @@ pub enum WindowEvent {
     Relayout,
     /// Prints the debug message to the console.
     Debug(String),
-
-    // TODO: Handle these for the winit backend
-    /// Resize the widnow to the given **logical** width and height. These sizes should thus not
-    /// have any DPI scaling applied to them. If you just want to change the window's scaling, then
-    /// emit a [`WindowEvent::SetDpi`] event instead.
-    ResizeWindow(f32, f32),
-    /// Change the window's current scale and resize the window accordingly. This is a multiplier
-    /// applied on top of the DPI scaling. You do not need to (and should not) also call
-    /// [`WindowEvent::ResizeWindow`].
-    SetScale(f64),
 }
