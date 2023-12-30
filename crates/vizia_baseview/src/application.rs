@@ -214,11 +214,6 @@ impl ApplicationRunner {
                 width: self.current_window_size.width as f64 * self.current_user_scale_factor,
                 height: self.current_window_size.height as f64 * self.current_user_scale_factor,
             });
-
-            // TODO: Without this `WindowEvent::GeoChanged` isn't emitted for every element, even
-            //       though this same function is also called in the
-            //       `baseview::WindowEvent::Resized` event handler. Why?
-            cx.set_scale_factor(self.window_scale_factor * self.current_user_scale_factor);
         }
 
         // Force restyle on every frame for baseview backend to avoid style inheritance issues
@@ -404,6 +399,9 @@ impl ApplicationRunner {
                     }
 
                     cx.needs_refresh();
+
+                    // HACK: Without this the event doesn't reach any `Model`s
+                    cx.send_event(Event::new(WindowEvent::GeometryChanged(GeoChanged::all())));
                 }
                 baseview::WindowEvent::WillClose => {
                     cx.send_event(Event::new(WindowEvent::WindowClose));
