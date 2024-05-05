@@ -2,7 +2,7 @@ use std::any::TypeId;
 use std::collections::{HashMap, HashSet};
 
 use crate::binding::{get_storeid, BasicStore, Store, StoreId};
-use crate::context::{CURRENT, MAPS, MAP_MANAGER};
+use crate::context::{CURRENT, MAPS};
 use crate::model::ModelOrView;
 use crate::prelude::*;
 
@@ -148,22 +148,8 @@ impl<L: 'static + Lens> BindingHandler for Binding<L> {
     fn update(&mut self, cx: &mut Context) {
         cx.remove_children(cx.current());
 
-        let ids = MAPS.with(|f| {
-            let ids = f
-                .borrow()
-                .iter()
-                .filter(|(_, map)| map.0 == self.entity)
-                .map(|(id, _)| *id)
-                .collect::<Vec<_>>();
+        MAPS.with(|f| {
             f.borrow_mut().retain(|_, map| map.0 != self.entity);
-
-            ids
-        });
-
-        MAP_MANAGER.with(|f| {
-            for id in ids {
-                f.borrow_mut().destroy(id);
-            }
         });
 
         if let Some(builder) = &self.content {

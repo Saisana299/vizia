@@ -4,6 +4,6 @@ use vizia_id::{
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct MapId(u64);
+pub struct MapId(pub u64);
 
 impl_generational_id!(MapId);

@@ -11,7 +11,7 @@ mod resource;
 use instant::{Duration, Instant};
 use log::debug;
 use std::any::{Any, TypeId};
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::hash_map::Entry;
 use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 use std::rc::Rc;
@@ -59,7 +59,9 @@ type Models = FnvHashMap<Entity, ModelDataStore>;
 type Bindings = FnvHashMap<Entity, Box<dyn BindingHandler>>;
 
 thread_local! {
-    pub static MAP_MANAGER: RefCell<IdManager<MapId>> = RefCell::new(IdManager::new());
+    // NOTE: Multiple instances of the same VIZIA GUI may be running on the same thread, so the
+    //       indices in `MAPS` must be unique between instances.
+    pub static NEXT_MAP_ID: Cell<MapId> = Cell::new(MapId(0));
     // Store of mapping functions used for lens maps.
     pub static MAPS: RefCell<HashMap<MapId, (Entity, Box<dyn Any>)>> = RefCell::new(HashMap::new());
     // The 'current' entity which is used for storing lens map mapping functions as per above.
@@ -440,22 +442,8 @@ impl Context {
             }
 
             // Remove any map lenses associated with the entity.
-            let ids = MAPS.with(|f| {
-                let ids = f
-                    .borrow()
-                    .iter()
-                    .filter(|(_, map)| map.0 == *entity)
-                    .map(|(id, _)| *id)
-                    .collect::<Vec<_>>();
+            MAPS.with(|f| {
                 f.borrow_mut().retain(|_, map| map.0 != *entity);
-
-                ids
-            });
-
-            MAP_MANAGER.with(|f| {
-                for id in ids {
-                    f.borrow_mut().destroy(id);
-                }
             });
 
             if let Some(parent) = self.tree.get_layout_parent(*entity) {

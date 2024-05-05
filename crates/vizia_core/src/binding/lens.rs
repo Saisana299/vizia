@@ -5,7 +5,7 @@ use std::marker::PhantomData;
 use std::ops::{BitAnd, BitOr, Deref};
 use std::rc::Rc;
 
-use crate::context::{CURRENT, MAPS, MAP_MANAGER};
+use crate::context::{CURRENT, MAPS, NEXT_MAP_ID};
 use crate::prelude::*;
 
 use super::MapId;
@@ -94,7 +94,12 @@ pub trait LensExt: Lens {
     }
 
     fn map<O: 'static, F: 'static + Fn(&Self::Target) -> O>(self, map: F) -> Map<Self, O> {
-        let id = MAP_MANAGER.with(|f| f.borrow_mut().create());
+        let id = NEXT_MAP_ID.with(|f| {
+            let current @ MapId(n) = f.get();
+            f.set(MapId(n + 1));
+
+            current
+        });
         let entity = CURRENT.with(|f| *f.borrow());
         MAPS.with(|f| {
             f.borrow_mut().insert(id, (entity, Box::new(MapState { closure: Rc::new(map) })))
@@ -103,7 +108,13 @@ pub trait LensExt: Lens {
     }
 
     fn map_ref<O: 'static, F: 'static + Fn(&Self::Target) -> &O>(self, map: F) -> MapRef<Self, O> {
-        let id = MAP_MANAGER.with(|f| f.borrow_mut().create());
+        // TODO: This should be abstracted away
+        let id = NEXT_MAP_ID.with(|f| {
+            let current @ MapId(n) = f.get();
+            f.set(MapId(n + 1));
+
+            current
+        });
         let entity = CURRENT.with(|f| *f.borrow());
         MAPS.with(|f| {
             f.borrow_mut().insert(id, (entity, Box::new(MapRefState { closure: Rc::new(map) })))
