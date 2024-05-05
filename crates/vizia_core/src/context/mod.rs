@@ -64,11 +64,13 @@ thread_local! {
     pub static MAPS: RefCell<HashMap<MapId, (Entity, Box<dyn Any>)>> = RefCell::new(HashMap::new());
     // The 'current' entity which is used for storing lens map mapping functions as per above.
     pub static CURRENT: RefCell<Entity> = RefCell::new(Entity::root());
+    // HACK: Quick hack to avoid race conditions when two GUI instances are open on the same thread.
+    //       If `MAPS` is global, then `ENTITY_MANAGER` needs to be too.
+    pub static ENTITY_MANAGER: RefCell<IdManager<Entity>> = RefCell::new(IdManager::new());
 }
 
 /// The main storage and control object for a Vizia application.
 pub struct Context {
-    pub(crate) entity_manager: IdManager<Entity>,
     pub(crate) entity_identifiers: HashMap<String, Entity>,
     pub(crate) tree: Tree<Entity>,
     pub(crate) current: Entity,
@@ -157,7 +159,6 @@ impl Context {
         db.load_font_data(Vec::from(TABLER_ICONS));
 
         let mut result = Self {
-            entity_manager: IdManager::new(),
             entity_identifiers: HashMap::new(),
             tree: Tree::new(),
             current: Entity::root(),
@@ -225,7 +226,7 @@ impl Context {
         // Build the environment model at the root.
         Environment::new(&mut result).build(&mut result);
 
-        result.entity_manager.create();
+        ENTITY_MANAGER.with_borrow_mut(|f| f.create());
         result.set_default_font(&["Roboto"]);
 
         result.style.role.insert(Entity::root(), Role::Window);
@@ -479,7 +480,7 @@ impl Context {
             self.style.remove(*entity);
             self.data.remove(entity);
             self.views.remove(entity);
-            self.entity_manager.destroy(*entity);
+            ENTITY_MANAGER.with(|f| f.borrow_mut().destroy(*entity));
             self.text_context.clear_buffer(*entity);
         }
     }
