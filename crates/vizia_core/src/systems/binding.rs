@@ -1,3 +1,4 @@
+use crate::context::ENTITY_MANAGER;
 use crate::{model::ModelOrView, prelude::*};
 use std::collections::HashSet;
 
@@ -44,7 +45,7 @@ pub(crate) fn binding_system(cx: &mut Context) {
         // Update observers in tree order.
         for observer in ordered_observers.into_iter() {
             // Skip observers that have been destroyed
-            if !cx.entity_manager.is_alive(observer) {
+            if !ENTITY_MANAGER.with_borrow(|f| f.is_alive(observer)) {
                 continue;
             }
 
